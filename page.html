@@ -1,0 +1,66 @@
+<!doctype html>
+<html>
+
+<head>
+	<meta charset="utf-8">
+	<title>Certificate tool</title>
+
+	<script src="wasm-code.js"></script>
+	<script src="wasm_exec.js"></script>
+	<script>
+		function parse() {
+			let res = processPEM(document.querySelector("#pem").value);
+			if (res) {
+				let certdata = document.querySelector('#certdata');
+				certdata.textContent = '';
+				for (let elem of res) {
+					let [name, value] = elem;
+					let tr = document.createElement('tr');
+					
+					for (let str of elem) {
+						let td = document.createElement('td');
+						td.textContent = str;
+						tr.appendChild(td);
+					}
+					
+					certdata.appendChild(tr);
+				}
+			}
+			console.log(res);
+		}
+
+		function generate() {
+			let res = generateCert();
+			if (res) {
+				document.querySelector("#pem").value = res;
+			}
+		}
+
+		window.addEventListener('load', ()=> {
+			const go = new Go();
+			let mod, inst;
+			WebAssembly.instantiate(wasm_content, go.importObject).then(async (result) => {
+				mod = result.module;
+				inst = result.instance;
+				await go.run(inst);
+				inst = await WebAssembly.instantiate(mod, go.importObject); // reset instance
+			}).catch((err) => {
+				console.error(err);
+			});
+		});
+	</script>
+</head>
+
+<body>
+<input type="button" id="btn1" value="Parse certificate" onclick="parse();"/>
+<br/>
+<input type="button" id="btn2" value="Generate self-signed cert for localhost" onclick="generate();"/>
+<br/>
+<div style="display: flex; flex-direction: row;">
+	<textarea id="pem" style="width:600px; height: 700px;"></textarea>
+	<table>
+		<tbody id="certdata"></tbody>
+	</table>
+</div>
+</body>
+</html>
